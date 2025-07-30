@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red & White Recipe Generator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: #d32f2f;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .search-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+        
+        input[type="text"] {
+            padding: 10px 15px;
+            border: 2px solid #d32f2f;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 300px;
+        }
+        
+        button {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #b71c1c;
+        }
+        
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .meal-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .meal-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .meal-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .meal-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        
+        .meal-info {
+            padding: 20px;
+        }
+        
+        .meal-title {
+            color: #d32f2f;
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+        
+        .meal-category {
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        
+        .meal-instructions {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .ingredients-list {
+            padding-left: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 30px 0;
+            color: #d32f2f;
+        }
+        
+        .error {
+            color: #d32f2f;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .meal-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            input[type="text"] {
+                width: 80%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Red & White Recipe Generator</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search for meals...">
+            <button id="searchBtn">Search</button>
+        </div>
+        
+        <div class="buttons-container">
+            <button id="randomMealBtn">Random Meal</button>
+            <button id="random10Btn">10 Random Meals</button>
+        </div>
+        
+        <div id="mealContainer" class="meal-container">
+            <!-- Meals will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchBtn = document.getElementById('searchBtn');
+            const randomMealBtn = document.getElementById('randomMealBtn');
+            const random10Btn = document.getElementById('random10Btn');
+            const mealContainer = document.getElementById('mealContainer');
+            const searchInput = document.getElementById('searchInput');
+
+            // Event listeners
+            searchBtn.addEventListener('click', searchMeals);
+            randomMealBtn.addEventListener('click', fetchRandomMeal);
+            random10Btn.addEventListener('click', fetch10RandomMeals);
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') searchMeals();
+            });
+
+            // Initial load - show random meal
+            fetchRandomMeal();
+
+            // Search meals by name
+            async function searchMeals() {
+                const searchTerm = searchInput.value.trim();
+                
+                if (!searchTerm) {
+                    alert('Please enter a search term');
+                    return;
+                }
+
+                mealContainer.innerHTML = '<div class="loading">Searching meals...</div>';
+                
+                try {
+                    const response = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${searchTerm}`);
+                    const data = await response.json();
+                    
+                    if (data.meals && data.meals.length > 0) {
+                        displayMeals(data.meals);
+                    } else {
+                        mealContainer.innerHTML = '<div class="error">No meals found. Try a different search term.</div>';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    mealContainer.innerHTML = '<div class="error">An error occurred while fetching meals.</div>';
+                }
+            }
+
+            // Fetch random meal
+            async function fetchRandomMeal() {
+                mealContainer.innerHTML = '<div class="loading">Loading random meal...</div>';
+                
+                try {
+                    const response = await fetch('https://www.themealdb.com/api/json/v1/1/random.php');
+                    const data = await response.json();
+                    displayMeals(data.meals);
+                } catch (error) {
+                    console.error('Error:', error);
+                    mealContainer.innerHTML = '<div class="error">An error occurred while fetching random meal.</div>';
+                }
+            }
+
+            // Fetch 10 random meals
+            async function fetch10RandomMeals() {
+                mealContainer.innerHTML = '<div class="loading">Loading 10 random meals...</div>';
+                const mealPromises = [];
+                
+                // Get 10 random meals by calling the API 10 times
+                for (let i = 0; i < 10; i++) {
+                    mealPromises.push(
+                        fetch('https://www.themealdb.com/api/json/v1/1/random.php')
+                            .then(response => response.json())
+                            .then(data => data.meals[0])
+                    );
+                }
+                
+                try {
+                    const meals = await Promise.all(mealPromises);
+                    displayMeals(meals);
+                } catch (error) {
+                    console.error('Error:', error);
+                    mealContainer.innerHTML = '<div class="error">An error occurred while fetching random meals.</div>';
+                }
+            }
+
+            // Display meals in the container
+            function displayMeals(meals) {
+                mealContainer.innerHTML = '';
+                
+                meals.forEach(meal => {
+                    const mealCard = document.createElement('div');
+                    mealCard.className = 'meal-card';
+                    
+                    // Create ingredients list
+                    let ingredientsList = '<ul class="ingredients-list">';
+                    for (let i = 1; i <= 20; i++) {
+                        const ingredient = meal[`strIngredient${i}`];
+                        const measure = meal[`strMeasure${i}`];
+                        
+                        if (ingredient && ingredient.trim() !== '') {
+                            ingredientsList += `<li>${measure ? measure + ' ' : ''}${ingredient}</li>`;
+                        } else {
+                            break;
+                        }
+                    }
+                    ingredientsList += '</ul>';
+                    
+                    mealCard.innerHTML = `
+                        <img src="${meal.strMealThumb}" alt="${meal.strMeal}" class="meal-image">
+                        <div class="meal-info">
+                            <h3 class="meal-title">${meal.strMeal}</h3>
+                            <p class="meal-category">${meal.strCategory}</p>
+                            <p class="meal-instructions">${meal.strInstructions.substring(0, 150)}...</p>
+                            ${ingredientsList}
+                        </div>
+                    `;
+                    
+                    mealContainer.appendChild(mealCard);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
